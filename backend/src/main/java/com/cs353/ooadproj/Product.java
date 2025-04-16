@@ -1,5 +1,6 @@
 package com.cs353.ooadproj;
 
+import java.util.ArrayList;
 import java.util.List;
 //import java.util.Objects;
 
@@ -21,6 +22,6 @@ public class Product {
     private String description;
     private List<String> images;
     private List<String> tags;
-    private List<Review> reviews;
+    private List<Review> reviews = new ArrayList<>();
 
 }

@@ -14,7 +14,7 @@ import java.util.HashMap;
 public class UserController {
     private final UsersRepo usersRepo;
 
-    public UserController(UsersRepo(usersRepo) {
+    public UserController(UsersRepo usersRepo) {
         this.usersRepo = usersRepo;
     }
 

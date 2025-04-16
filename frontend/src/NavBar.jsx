@@ -268,7 +268,7 @@ export default function NavBar({ children }) {
               {/* Logo */}
               <div className="ml-4 flex lg:ml-0">
                 <a href="/">
-                  <span className="font-playfair font-bold text-2xl tracking-wider bg-gradient-to-r from-primary-color to-accent-color bg-clip-text text-transparent">MNML</span>
+                  <span className="font-playfair font-bold text-2xl tracking-wider bg-gradient-to-r from-primary-color to-accent-color bg-clip-text text-transparent">ecommerce shop</span>
                 </a>
               </div>
 
