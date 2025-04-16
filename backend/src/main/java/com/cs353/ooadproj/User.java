@@ -4,17 +4,13 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-
-@Document
 @Data
+@Document(collection = "users")
 public class User {
     @Id
-    @GeneratedValue()
     private String id;
     private String username;
-    private String email;
     private String passhash;
+    private String email;
+    private String role; // "USER" or "ADMIN"
 }

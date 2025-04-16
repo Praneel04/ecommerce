@@ -10,23 +10,56 @@ export default function RegisterModal({ open = false, setOpen }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminCode, setAdminCode] = useState("");
+  
+  // This should be stored securely in a real application
+  const ADMIN_SECRET_CODE = "admin123";
 
   const handleLogin = async () => {
     try {
-      const { data } = await axios.post("http://localhost:8080/users", {
+      // Check if admin code is correct when admin registration is attempted
+      let role = "USER";
+      if (isAdmin) {
+        if (adminCode !== ADMIN_SECRET_CODE) {
+          alert("Invalid admin code");
+          return;
+        }
+        role = "ADMIN";
+        console.log("Setting role to ADMIN");
+      }
+      
+      // Debug what we're sending to the server
+      const userData = {
         username,
         password,
-      });
-      localStorage.setItem(
-        "minimalUser",
-        JSON.stringify({
-          email: data.email,
-          id: data.id,
-          username: data.username,
-        })
-      );
+        email,
+        role
+      };
+      console.log("Sending registration data:", userData);
+      
+      const response = await axios.post("http://localhost:8080/users", userData);
+      const data = response.data;
+      console.log("Registration response:", data);
+      
+      // Make sure role is explicitly included in localStorage
+      const userToStore = {
+        email: data.email,
+        id: data.id,
+        username: data.username,
+        // Explicitly use the role we set rather than what came back from server
+        role: role 
+      };
+      
+      console.log("Storing user in localStorage:", userToStore);
+      localStorage.setItem("minimalUser", JSON.stringify(userToStore));
+      
       setOpen(false);
+      
+      // Use redirect instead of reload to avoid losing state
+      window.location.href = "/";
     } catch (error) {
+      console.error("Registration error:", error);
       setPassword("");
       alert("Error Registering user. Try again later");
     }
@@ -73,7 +106,7 @@ export default function RegisterModal({ open = false, setOpen }) {
                 <div className="sm:items-start">
                   <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                     <h1 className="text-3xl mb-5 font-bold tracking-tight text-gray-900">
-                      Login
+                      Register
                     </h1>
                     <form>
                       <div className="mt-5">
@@ -135,6 +168,43 @@ export default function RegisterModal({ open = false, setOpen }) {
                             value={password}
                           />
                         </div>
+                        
+                        <div className="mt-5">
+                          <div className="flex items-center">
+                            <input
+                              id="is-admin"
+                              name="is-admin"
+                              type="checkbox"
+                              className="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 rounded"
+                              checked={isAdmin}
+                              onChange={(e) => setIsAdmin(e.target.checked)}
+                            />
+                            <label htmlFor="is-admin" className="ml-2 block text-sm text-gray-900">
+                              Register as Admin
+                            </label>
+                          </div>
+                        </div>
+                        
+                        {isAdmin && (
+                          <div className="mt-5">
+                            <label
+                              htmlFor="admin-code"
+                              className="block text-sm font-medium text-gray-700"
+                            >
+                              Admin Code
+                            </label>
+                            <input
+                              type="password"
+                              name="admin-code"
+                              id="admin-code"
+                              className="p-1 mt-1 focus:ring-gray-500 focus:border-gray-500 block w-full shadow-sm sm:text-xl border border-gray-300 rounded-md"
+                              onChange={(e) => {
+                                setAdminCode(e.target.value);
+                              }}
+                              value={adminCode}
+                            />
+                          </div>
+                        )}
                       </div>
 
                       <div className="bg-gray-50 pt-10 sm:flex sm:flex-row-reverse">

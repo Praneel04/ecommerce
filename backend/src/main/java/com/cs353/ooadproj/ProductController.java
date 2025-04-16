@@ -1,77 +1,75 @@
 package com.cs353.ooadproj;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @RestController
 @Slf4j
 public class ProductController {
-    private final ProductsRepository productsRepository;
-    public ProductController(ProductsRepository productsRepository){
-        this.productsRepository = productsRepository;
+    private final ProductRepo productRepo;
+    private final AuthorizationService authService;
+
+    public ProductController(ProductRepo productRepo, AuthorizationService authService) {
+        this.productRepo = productRepo;
+        this.authService = authService;
     }
 
     @CrossOrigin()
-    @GetMapping("/products")//Retrieve Products
-    public List<Product> all() {
+    @GetMapping("/products")
+    public List<Product> getAllProducts() {
         log.info("Getting all products");
-        return productsRepository.findAll();
+        return productRepo.findAll();
     }
 
     @CrossOrigin()
-    @PostMapping("/products")//Add Products
-    public Product newProduct(@RequestBody Product newProduct) {
-        log.info("Adding new product");
-        return productsRepository.save(newProduct);
+    @GetMapping("/products/{id}")
+    public Product getProduct(@PathVariable String id) {
+        log.info("Getting product #{}", id);
+        return productRepo.findById(id).orElse(null);
     }
 
     @CrossOrigin()
-    @GetMapping("/products/{id}")//View single product
-    public Product oneProduct(@PathVariable String id) {
-        log.info("Getting product with ID : {}.",id);
-        return productsRepository.findById(id).get();
-    }
-
-    //TODO
-    @CrossOrigin()
-    @PutMapping("/products/{id}")//Edit product merchant
-    Product editProduct(@RequestBody Product newProduct, @PathVariable String id) {
-        log.info("Edited product with ID : {}.",id);
-        Product product = productsRepository.findById(id).get();
-        product.setTitle(newProduct.getTitle());
-        product.setImages(newProduct.getImages());
-        product.setDescription(newProduct.getDescription());
-        product.setTags(newProduct.getTags());
-        product.setPrice(newProduct.getPrice());
-        return productsRepository.save(product);
+    @PostMapping("/products")
+    public Product addProduct(@RequestBody Product product, @RequestParam String userId) {
+        // Validate that the user is an admin
+        authService.validateAdminAccess(userId);
+        
+        log.info("Adding product: {}", product.getName());
+        return productRepo.save(product);
     }
 
     @CrossOrigin()
-    @DeleteMapping("/products/{id}")//Delete one product
-    void deleteProduct(@PathVariable String id) {
-        log.info("Deleting product with ID : {}.",id);
-        productsRepository.deleteById(id);
+    @DeleteMapping("/products/{id}")
+    public Map<String, Object> deleteProduct(@PathVariable String id, @RequestParam String userId) {
+        // Validate that the user is an admin
+        authService.validateAdminAccess(userId);
+        
+        log.info("Deleting product #{}", id);
+        productRepo.deleteById(id);
+        
+        // Return a response that the frontend can process
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("id", id);
+        return response;
     }
-
-    //TODO
+    
     @CrossOrigin()
-    @PostMapping("/products/{id}/review")
-    Product addProductReview(@PathVariable String id, @RequestBody AddProductReq addProductReq) {
-        log.info("Adding review to product with ID : {}.",id);
-        Product product = productsRepository.findById(id).get();//Very hacky workaround pls check
-        List<Review> reviews = product.getReviews();
-        Review review = new Review();
-        review.setReviewBody(addProductReq.getReviewBody());
-        review.setUsername(addProductReq.getUsername());
-        review.setUserId(addProductReq.getUserId());
-        review.setRating(addProductReq.getRating());
-        reviews.add(review);
-        product.setReviews(reviews);
-        return productsRepository.save(product);
+    @PutMapping("/products/{id}")
+    public Product updateProduct(@PathVariable String id, @RequestBody Product product, @RequestParam String userId) {
+        // Validate that the user is an admin
+        authService.validateAdminAccess(userId);
+        
+        log.info("Updating product #{}", id);
+
+
+
+}    }        return productRepo.save(product);        product.setId(id);
+        return productRepo.save(product);
     }
 }

@@ -12,23 +12,36 @@ export default function LoginModal({ open = false, setOpen }) {
 
   const handleLogin = async () => {
     try {
-      const { data } = await axios.post("http://localhost:8080/login", {
+      console.log("Attempting login for:", username);
+      const response = await axios.post("http://localhost:8080/login", {
         username,
         password,
       });
-      localStorage.setItem(
-        "minimalUser",
-        JSON.stringify({
-          email: data.email,
-          id: data.id,
-          username: data.username,
-        })
-      );
+      
+      const data = response.data;
+      console.log("Login successful:", data);
+      
+      // Check if role exists in the response
+      if (!data.role) {
+        console.warn("No role returned from server. Using default USER role.");
+      }
+      
+      // Store complete user data including role
+      const userData = {
+        id: data.id,
+        username: data.username,
+        email: data.email || '',
+        role: data.role || "USER"
+      };
+      
+      console.log("Saving user data to localStorage:", userData);
+      localStorage.setItem("minimalUser", JSON.stringify(userData));
+      
       setOpen(false);
-      window.location.reload();
+      window.location.href = "/"; // Use href instead of reload
     } catch (error) {
-      setPassword("");
-      alert("Invalid username/password");
+      console.error("Login failed:", error);
+      alert("Invalid username or password");
     }
   };
 

@@ -29,6 +29,9 @@ export default function NavBar({ children }) {
 
   let user = localStorage.getItem("minimalUser");
   if (user) user = JSON.parse(user);
+  
+  // Check if the user is an admin
+  const isAdmin = user && user.role === "ADMIN";
 
   const logout = () => {
     localStorage.removeItem("minimalUser");

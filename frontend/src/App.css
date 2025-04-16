@@ -1,5 +1,19 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f0f2f5; /* Light gray background for the body */
+}
+
 .App {
   text-align: center;
+  padding: 20px; /* Add some padding */
+  background-color: #ac9494; /* White background for the main app container */
+  min-height: 100vh; /* Ensure it takes full height */
+  color: #333; /* Darker default text color */
 }
 
 .App-logo {
@@ -14,18 +28,56 @@
 }
 
 .App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+  background-color: #282c34; /* Dark background for header */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin);
-  color: white;
+  color: rgb(166, 106, 106); /* White text color for header */
+  padding: 20px; /* Add padding to header */
+  margin-bottom: 20px; /* Add space below header */
 }
 
 .App-link {
-  color: #61dafb;
+  color: #61dafb; /* Original React link color */
+}
+
+/* Add new styles for links */
+a {
+  color: #007bff; /* Standard blue link color */
+  text-decoration: none; /* Remove underline by default */
+}
+
+a:hover {
+  color: #0056b3; /* Darker blue on hover */
+  text-decoration: underline; /* Add underline on hover */
+}
+
+/* Add new styles for buttons */
+button {
+  background-color: #007bff; /* Blue background */
+  color: white; /* White text */
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin: 5px; /* Add some margin around buttons */
+  transition: background-color 0.3s ease; /* Smooth transition on hover */
+}
+
+button:hover {
+  background-color: #0056b3; /* Darker blue on hover */
+}
+
+/* Example of styling a specific button if needed */
+.primary-button {
+  background-color: #28a745; /* Green background for primary actions */
+}
+
+.primary-button:hover {
+  background-color: #218838; /* Darker green on hover */
 }
 
 @keyframes App-logo-spin {
