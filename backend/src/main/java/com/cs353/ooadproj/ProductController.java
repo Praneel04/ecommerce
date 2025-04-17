@@ -1,86 +1,126 @@
 package com.cs353.ooadproj;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @Slf4j
 public class ProductController {
-    private final ProductsRepository productRepo;
-    private final AuthorizationService authService;
+    
+    // Using the proxy pattern instead of direct repository access
+    private final ProductRepositoryProxy productRepo;
+    private final UsersRepo usersRepo;
+    private final AuthorizationService authorizationService;
 
-    public ProductController(ProductsRepository productRepo, AuthorizationService authService) {
+    public ProductController(ProductRepositoryProxy productRepo, UsersRepo usersRepo, 
+                            AuthorizationService authorizationService) {
         this.productRepo = productRepo;
-        this.authService = authService;
+        this.usersRepo = usersRepo;
+        this.authorizationService = authorizationService;
     }
 
-    @CrossOrigin
+    @CrossOrigin()
     @GetMapping("/products")
-    public List<Product> getAllProducts() {
-        log.info("Getting all products");
+    public List<Product> getProducts() {
+        log.info("Getting products");
         return productRepo.findAll();
     }
 
-    @CrossOrigin
+    @CrossOrigin()
     @GetMapping("/products/{id}")
     public Product getProduct(@PathVariable String id) {
         log.info("Getting product #{}", id);
         return productRepo.findById(id).orElse(null);
     }
 
-    @CrossOrigin
+    @CrossOrigin()
     @PostMapping("/products")
-    public Product addProduct(@RequestBody Product product, @RequestParam String userId) {
-        authService.validateAdminAccess(userId);
-        log.info("Adding product: {}", product.getTitle());
-        return productRepo.save(product);
-    }
-
-    @CrossOrigin
-    @DeleteMapping("/products/{id}")
-    public Map<String, Object> deleteProduct(@PathVariable String id, @RequestParam String userId) {
-        authService.validateAdminAccess(userId);
-        log.info("Deleting product #{}", id);
-        productRepo.deleteById(id);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("id", id);
-        return response;
-    }
-
-    @CrossOrigin
-    @PutMapping("/products/{id}")
-    public Product updateProduct(@PathVariable String id, @RequestBody Product product, @RequestParam String userId) {
-        authService.validateAdminAccess(userId);
-        log.info("Updating product #{}", id);
-
-        product.setId(id);  // Ensure the ID is set correctly
-        return productRepo.save(product);
-    }
-
-    @CrossOrigin
-    @PostMapping("/products/{id}/review")
-    public Product addProductReview(@PathVariable String id, @RequestBody Review review) {
-        log.info("Adding review to product #{}", id);
-        Product product = productRepo.findById(id).orElse(null);
+    public Product addProduct(@RequestBody Product product, @RequestParam("userId") String userId) {
+        log.info("Adding product {} by {}", product, userId);
         
-        if (product == null) {
-            log.warn("Product not found: {}", id);
-            return null;
-        }
-        
-        // Add review to the product's reviews list
-        if (product.getReviews() == null) {
-            product.setReviews(List.of(review));
+        if (authorizationService.isAdmin(userId)) {
+            log.info("User is admin, adding product");
+            
+            // Ensure reviews is initialized
+            if (product.getReviews() == null) {
+                product.setReviews(new ArrayList<>());
+            }
+            
+            return productRepo.save(product);
         } else {
-            product.getReviews().add(review);
+            throw new IllegalArgumentException("Unauthorized!");
         }
+    }
+
+    @CrossOrigin()
+    @PostMapping("/products/{id}/review")
+    public Product reviewProduct(@PathVariable String id, @RequestBody Review review) {
+        log.info("Adding Review {} to Product #{}", review, id);
         
-        return productRepo.save(product);
+        Optional<Product> optionalProduct = productRepo.findById(id);
+        
+        if (optionalProduct.isPresent()) {
+            Product product = optionalProduct.get();
+            
+            if (product.getReviews() == null) {
+                product.setReviews(new ArrayList<>());
+            }
+            
+            product.getReviews().add(review);
+            
+            // Calculate average rating using the Iterator pattern
+            double avgRating = ReviewUtils.getAverageRating(product);
+            log.info("New average rating for product {}: {}", id, avgRating);
+            
+            return productRepo.save(product);
+        } else {
+            log.warn("Product not found: {}", id);
+            throw new IllegalArgumentException("Product not found!");
+        }
+    }
+    
+    @CrossOrigin()
+    @DeleteMapping("/products/{id}")
+    public void deleteProduct(@PathVariable String id, @RequestParam("userId") String userId) {
+        log.info("Deleting Product #{} by User #{}", id, userId);
+        
+        if (authorizationService.isAdmin(userId)) {
+            log.info("User is admin, proceeding with delete");
+            productRepo.deleteById(id);
+        } else {
+            log.warn("User #{} attempted to delete product without authorization", userId);
+            throw new IllegalArgumentException("Unauthorized!");
+        }
+    }
+
+    @CrossOrigin()
+    @GetMapping("/products/search")
+    public List<Product> searchProducts(@RequestParam("query") String query) {
+        log.info("Searching for products with query: {}", query);
+        String searchQuery = query.toLowerCase();
+        
+        return productRepo.findAll().stream()
+            .filter(product -> 
+                (product.getTitle() != null && product.getTitle().toLowerCase().contains(searchQuery)) ||
+                (product.getDescription() != null && product.getDescription().toLowerCase().contains(searchQuery)))
+            .collect(Collectors.toList());
+    }
+    
+    @CrossOrigin()
+    @GetMapping("/products/category/{category}")
+    public List<Product> getProductsByCategory(@PathVariable String category) {
+        log.info("Getting products for category: {}", category);
+        String categoryLower = category.toLowerCase();
+        
+        return productRepo.findAll().stream()
+            .filter(product -> product.getTags() != null && 
+                product.getTags().stream()
+                    .anyMatch(tag -> tag.toLowerCase().equals(categoryLower)))
+            .collect(Collectors.toList());
     }
 }

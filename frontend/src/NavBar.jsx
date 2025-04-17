@@ -1,7 +1,7 @@
 import { Fragment, useState } from "react";
 import { Dialog, Popover, Tab, Transition } from "@headlessui/react";
-import { MenuIcon, ShoppingBagIcon, XIcon } from "@heroicons/react/outline";
-import { Link } from "react-router-dom";
+import { MenuIcon, ShoppingBagIcon, XIcon, SearchIcon } from "@heroicons/react/outline";
+import { Link, useNavigate } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -26,16 +26,26 @@ export default function NavBar({ children }) {
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
 
   let user = localStorage.getItem("minimalUser");
   if (user) user = JSON.parse(user);
-  
+
   // Check if the user is an admin
   const isAdmin = user && user.role === "ADMIN";
 
   const logout = () => {
     localStorage.removeItem("minimalUser");
     window.location.reload();
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery("");
+    }
   };
 
   const loginButton = (
@@ -270,6 +280,25 @@ export default function NavBar({ children }) {
                 <a href="/">
                   <span className="font-playfair font-bold text-2xl tracking-wider bg-gradient-to-r from-primary-color to-accent-color bg-clip-text text-transparent">ecommerce-shop</span>
                 </a>
+              </div>
+
+              {/* Search bar */}
+              <div className="flex-1 flex items-center justify-center px-2 lg:ml-6 lg:justify-end">
+                <form className="max-w-lg w-full" onSubmit={handleSearch}>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-color focus:border-primary-color sm:text-sm"
+                      placeholder="Search products..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3">
+                      <SearchIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                    </div>
+                    <button type="submit" className="hidden">Search</button>
+                  </div>
+                </form>
               </div>
 
               {/* Flyout menus */}

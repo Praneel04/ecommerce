@@ -1,5 +1,5 @@
 import { useEffect, useState, Fragment } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Dialog, Transition } from '@headlessui/react';
 import { getPriceString } from "./util/getPriceString";
@@ -21,10 +21,43 @@ export default function Products() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Get user from localStorage
   const user = JSON.parse(localStorage.getItem("minimalUser") || "{}");
+
+  // Effect to handle URL parameters for search and category
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const searchParam = params.get('search');
+    const categoryParam = params.get('category');
+    
+    if (searchParam) {
+      setSearchQuery(searchParam);
+      searchProductsHandler(searchParam);
+    } else if (categoryParam) {
+      setSelectedCategory(categoryParam);
+      fetchProductsByCategory(categoryParam);
+    } else {
+      setSearchQuery("");
+      setSelectedCategory("");
+      fetchProducts();
+    }
+  }, [location.search]);
+
+  // Extract unique categories from products
+  useEffect(() => {
+    if (products.length > 0) {
+      const allTags = products.flatMap(product => product.tags || []);
+      const uniqueCategories = [...new Set(allTags)].filter(Boolean);
+      setCategories(uniqueCategories);
+    }
+  }, [products]);
 
   // Force a re-check of admin status on component mount
   useEffect(() => {
@@ -76,6 +109,32 @@ export default function Products() {
     }
   };
 
+  const searchProductsHandler = async (query) => {
+    try {
+      setLoading(true);
+      const data = await apiAdapter.searchProducts(query);
+      setProducts(data || []);
+    } catch (err) {
+      console.error("Error searching products:", err);
+      setError("Failed to search products");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchProductsByCategory = async (category) => {
+    try {
+      setLoading(true);
+      const data = await apiAdapter.getProductsByCategory(category);
+      setProducts(data || []);
+    } catch (err) {
+      console.error("Error fetching products by category:", err);
+      setError("Failed to load products for this category");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchProducts = async () => {
     try {
       setLoading(true);
@@ -87,6 +146,10 @@ export default function Products() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCategorySelect = (category) => {
+    navigate(`/products?category=${encodeURIComponent(category)}`);
   };
 
   const handleDeleteClick = (e, product) => {
@@ -126,7 +189,8 @@ export default function Products() {
       <div className="max-w-2xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:max-w-7xl lg:px-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-extrabold tracking-tight text-primary-color section-title">
-            Products
+            {searchQuery ? `Search: "${searchQuery}"` : 
+             selectedCategory ? `Category: ${selectedCategory}` : "Products"}
           </h1>
           
           {/* Debug info */}
@@ -146,9 +210,42 @@ export default function Products() {
           )}
         </div>
 
+        {/* Category filters */}
+        <div className="mb-8">
+          <h2 className="text-lg font-medium text-gray-700 mb-3">Categories</h2>
+          <div className="flex flex-wrap gap-2">
+            <button
+              className={`px-4 py-2 rounded-full text-sm ${
+                selectedCategory === "" 
+                  ? "bg-primary-color text-white" 
+                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+              }`}
+              onClick={() => navigate("/products")}
+            >
+              All Products
+            </button>
+            {categories.map((category) => (
+              <button
+                key={category}
+                className={`px-4 py-2 rounded-full text-sm ${
+                  selectedCategory === category 
+                    ? "bg-primary-color text-white" 
+                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                }`}
+                onClick={() => handleCategorySelect(category)}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {products.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-gray-500 mb-4 text-lg">No products available.</p>
+            <p className="text-gray-500 mb-4 text-lg">
+              {searchQuery ? "No products found matching your search." : 
+               selectedCategory ? "No products found in this category." : "No products available."}
+            </p>
             {isAdmin && (
               <p className="text-gray-500">Click "Add Product" to create some!</p>
             )}

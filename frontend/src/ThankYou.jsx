@@ -1,186 +1,116 @@
-import axios from "axios";
-import React from "react";
-import { useState } from "react";
-import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useLocation, Link } from "react-router-dom";
 import { toast } from "react-toastify";
-import lottie from "lottie-web";
-import orderPlaced from "./order-placed.json";
-
+import apiAdapter from "./services/ApiAdapter";
 import { getPriceString } from "./util/getPriceString";
 
-function useQuery() {
-  const { search } = useLocation();
-
-  return React.useMemo(() => new URLSearchParams(search), [search]);
-}
-
 export default function ThankYou() {
-  const query = useQuery();
-  const orderId = query.get("orderId");
-
-  const [orders, setOrders] = useState([]);
+  const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  let user = localStorage.getItem("minimalUser");
-  if (user) user = JSON.parse(user);
-
+  const location = useLocation();
+  
   useEffect(() => {
-    const getOrders = async () => {
+    const fetchOrderDetails = async () => {
+      const params = new URLSearchParams(location.search);
+      const orderId = params.get('orderId');
+      
+      if (!orderId) {
+        toast.error("Order ID not found");
+        setLoading(false);
+        return;
+      }
+      
       try {
-        setLoading(true);
-        // Setup animation
-        lottie.loadAnimation({
-          container: document.querySelector("#logo"),
-          animationData: orderPlaced,
-          renderer: "svg",
-          loop: false,
-          autoplay: true,
-        });
-        lottie.setSpeed(2);
-        
-        if (!user || !user.id) {
-          setLoading(false);
-          return;
-        }
-        
-        const { data } = await axios.get(
-          `http://localhost:8080/orders/${user.id}`
-        );
-        
-        // Ensure data exists and is in the correct format
-        const formattedOrders = Array.isArray(data) ? data.map(order => ({
-          ...order,
-          // Ensure totalCost exists, fall back to 0 if undefined
-          totalCost: order.totalCost || 0
-        })) : [];
-        
-        setOrders(formattedOrders);
-        console.log("Orders loaded:", formattedOrders);
-      } catch (err) {
-        console.error("Error fetching orders:", err);
-        toast.error("Failed to load orders");
+        const orderData = await apiAdapter.getOrderById(orderId);
+        setOrder(orderData);
+      } catch (error) {
+        console.error("Error fetching order details:", error);
+        toast.error("Could not load order details");
       } finally {
         setLoading(false);
       }
     };
-
-    if (user) getOrders();
-  }, []);
-
-  const handleDelete = async (order) => {
+    
+    fetchOrderDetails();
+  }, [location]);
+  
+  if (loading) {
+    return (
+      <div className="text-center py-20">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-color"></div>
+        <p className="mt-4 text-gray-600">Loading order details...</p>
+      </div>
+    );
+  }
+  
+  if (!order) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 px-4 sm:py-24 sm:px-6">
+        <div className="text-center">
+          <h1 className="text-4xl font-extrabold tracking-tight text-gray-900">Order not found</h1>
+          <p className="mt-4 text-gray-500">We couldn't find the order you're looking for.</p>
+          <Link to="/" className="mt-8 inline-block elegant-button">
+            Continue Shopping
+          </Link>
+        </div>
+      </div>
+    );
+  }
+  
+  // Format the delivery date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "Not available";
+    
     try {
-      const { data } = await axios.delete(
-        `http://localhost:8080/orders/${order.id}`
-      );
-      toast.success(`Order deleted!`);
-      setOrders(data);
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
     } catch (error) {
-      console.log(error);
-      toast.error("Error deleting order. Try again later");
+      console.error("Error formatting date:", error);
+      return dateString || "Not available";
     }
   };
-
+  
   return (
-    <div className="bg-light-color min-h-screen py-12">
-      {orderId && (
-        <>
-          <div className="flex flex-row items-center mb-2">
-            <div id="logo" className="mr-2 w-20 h-20"></div>
-            <h1 className="text-4xl font-extrabold tracking-tight text-primary-color">
-              Thank you!
-            </h1>
-          </div>
-
-          <div className="text-2xl font-thin tracking-tight text-gray-600">
-            Your #
-            <span className="text-accent-color font-medium">
-              {orderId.slice(orderId.length - 4, orderId.length).toUpperCase()}
-            </span>{" "}
-            order has been placed
-          </div>
-        </>
-      )}
-
-      <h1 className="text-3xl mt-20 mb-8 font-extrabold tracking-tight text-primary-color max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 section-title">
-        Your Orders
-      </h1>
-
-      {loading ? (
-        <div className="text-center py-20">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-color"></div>
-          <p className="mt-4 text-gray-600">Loading your orders...</p>
-        </div>
-      ) : orders.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="text-gray-600">You don't have any orders yet.</p>
-        </div>
-      ) : (
-        <div className="lg:flex flex-col items-center justify-center w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {orders.map((order) => (
-            <div
-              className="lg:w-1/2 lg:mr-7 lg:mb-8 mt-7 mb-7 bg-white p-6 shadow rounded elegant-card"
-              key={order.id}
-            >
-              <div className="flex items-center">
-                {order.lineItems && order.lineItems[0] && order.lineItems[0].product ? (
-                  <img
-                    src={order.lineItems[0].product.images[0]}
-                    alt={order.lineItems[0].product.title}
-                    className="w-16 h-16 rounded-full flex flex-shrink-0 object-cover border border-gray-200"
-                  />
-                ) : (
-                  <div className="w-16 h-16 rounded-full flex flex-shrink-0 bg-gray-200"></div>
-                )}
-                <div className="flex items-start justify-between w-full">
-                  <div className="pl-5 w-full">
-                    <p className="text-xl font-medium leading-5 text-primary-color">
-                      <span className="text-gray-400 mr-2">#{order.id}</span> 
-                      <span className="font-playfair">Order</span>
-                    </p>
-                    <div className="mt-3 flex justify-between">
-                      <div>
-                        <p className="text-sm leading-normal pt-2 text-gray-500">
-                          {order.createdAt ? (
-                            new Date(order.createdAt).toLocaleDateString('en-US', { 
-                              year: 'numeric', 
-                              month: 'long', 
-                              day: 'numeric' 
-                            })
-                          ) : 'Date not available'}
-                        </p>
-                        <p className="text-sm font-medium text-primary-color mt-1">
-                          {order.lineItems ? `${order.lineItems.length} ${order.lineItems.length === 1 ? 'item' : 'items'}` : '0 items'}
-                        </p>
-                      </div>
-                      <p className="font-bold text-lg text-accent-color">
-                        {getPriceString(order.totalCost)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center justify-end mt-4">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-gray-400 hover:text-accent-color transition duration-300 cursor-pointer"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  onClick={() => handleDelete(order)}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-              </div>
+    <div className="max-w-2xl mx-auto py-16 px-4 sm:py-24 sm:px-6">
+      <div className="text-center">
+        <h1 className="text-4xl font-extrabold tracking-tight text-gray-900">Thank you!</h1>
+        <p className="mt-4 text-lg text-gray-500">
+          Your order has been placed successfully.
+        </p>
+        <div className="mt-10 p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
+          <h2 className="text-xl font-semibold text-gray-800 border-b pb-4 mb-4">Order Details</h2>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Order ID:</span>
+              <span className="font-medium">{order.id}</span>
             </div>
-          ))}
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Order Date:</span>
+              <span className="font-medium">{formatDate(order.orderDate)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Delivery Date:</span>
+              <span className="font-medium">{formatDate(order.deliveryDate)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Shipping Address:</span>
+              <span className="font-medium">{order.address}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Total Amount:</span>
+              <span className="font-medium text-accent-color">{getPriceString(order.totalCost)}</span>
+            </div>
+          </div>
         </div>
-      )}
+        <Link to="/" className="mt-8 inline-block elegant-button">
+          Continue Shopping
+        </Link>
+      </div>
     </div>
   );
 }

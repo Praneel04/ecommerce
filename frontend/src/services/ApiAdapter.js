@@ -108,6 +108,27 @@ class ApiAdapter {
     }
   }
 
+  // Product search and category methods
+  async searchProducts(query) {
+    try {
+      const { data } = await this.client.get(`/products/search?query=${encodeURIComponent(query)}`);
+      return data;
+    } catch (error) {
+      console.error("Error searching products:", error);
+      throw error;
+    }
+  }
+
+  async getProductsByCategory(category) {
+    try {
+      const { data } = await this.client.get(`/products/category/${encodeURIComponent(category)}`);
+      return data;
+    } catch (error) {
+      console.error("Error getting products by category:", error);
+      throw error;
+    }
+  }
+
   // Product management methods (admin only)
   async addProduct(product, userId) {
     console.log(`Attempting to add product by user ${userId}`, product);
@@ -188,6 +209,16 @@ class ApiAdapter {
       const { data } = await this.client.get(`/orders/${userId}`);
       return data;
     } catch (error) {
+      throw error;
+    }
+  }
+
+  async getOrderById(orderId) {
+    try {
+      const response = await axios.get(`${this.baseURL}/orders/details/${orderId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching order details:", error);
       throw error;
     }
   }
