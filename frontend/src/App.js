@@ -8,6 +8,7 @@ import ThankYou from "./ThankYou";
 import AddProduct from "./Add_product";
 import Products from "./Products";
 import About from "./About";
+import OrdersPage from "./OrdersPage";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import apiAdapter from "./services/ApiAdapter";
@@ -110,6 +111,7 @@ function App() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/thankyou" element={<ThankYou />} />
           <Route path="/about" element={<About />} />
+          <Route path="/orders" element={<OrdersPage />} />
           <Route 
             path="/add-product" 
             element={

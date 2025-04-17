@@ -77,7 +77,7 @@ export default function NavBar({ children }) {
       </button>
       <span className="h-6 w-px bg-gray-200" aria-hidden="true" />
       <div className="text-sm font-medium text-gray-700 hover:text-primary-color">
-        <Link to="/thankyou" className="hover:text-accent-color transition duration-300">Orders</Link>
+        <Link to="/orders" className="hover:text-accent-color transition duration-300">Orders</Link>
       </div>
     </>
   ) : (
